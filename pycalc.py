@@ -162,5 +162,7 @@ def eval(p):
 
 while True:
     s = input('pycalc >> ')
+    if s == "exit":
+        break
     s = make_input_friendly(s)
     parser.parse(s)
