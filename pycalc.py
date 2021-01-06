@@ -2,10 +2,21 @@ import ply.lex as lex
 import ply.yacc as yacc
 import math
 
+def make_input_friendly(s):
+    s = s.replace("rad", "//")
+    s = s.replace("^^", "^")
+    s = s.replace("log", "!")
+    s = s.replace("sin", "@")
+    s = s.replace("cos", "#")
+    s = s.replace("ctg", "&")
+    s = s.replace("tg", "$")
+    return s
+
 # tokens def
 
 tokens = ['INT', 'FLOAT', 'PLUS', 'MINUS', 'DIVIDE', 'MULTIPLY', 'POW', 'SQRT',
-          'LPAREN', 'RPAREN', 'COMMA', 'LOGARITHM']
+          'LPAREN', 'RPAREN', 'COMMA', 'LOG',
+          'SIN', 'COS', 'TG', 'CTG']
 
 # basic operations
 
@@ -15,10 +26,23 @@ t_DIVIDE = r'\/'
 t_MULTIPLY = r'\*'
 t_POW = r'\^'
 t_SQRT = r'\//'
+
+# parantheses
+
 t_LPAREN  = r'\('
 t_RPAREN  = r'\)'
+
+# separator used for log: log(x, y)
+
 t_COMMA = r'\,'
-t_LOGARITHM = r'\@'
+t_LOG = r'\!'
+
+# trigon. funcs
+
+t_SIN = r'\@'
+t_COS = r'\#'
+t_TG = r'\$'
+t_CTG = r'\&'
 
 t_ignore = r' '
 
@@ -42,7 +66,8 @@ def t_error(t):
 
 precedence = (('left', 'PLUS', 'MINUS'),
               ('left', 'POW', 'MULTIPLY', 'DIVIDE'),
-              ('right', 'UMINUS', 'RAD', 'LOG'))
+              ('right', 'FUNC'),
+              ('right', 'UMINUS'))
 
 def p_calc(p):
     '''
@@ -51,13 +76,27 @@ def p_calc(p):
     '''
     print(eval(p[1]))
 
-def p_expression_rad(p):
-    'expression : SQRT expression %prec RAD'
-    p[0] = math.sqrt(p[2])
-
-def p_expression_log(p):
-    'expression : LOGARITHM expression %prec LOG'
-    p[0] = math.log(p[2][1], p[2][2])
+def p_expression_func(p):
+    '''
+     expression : SQRT expression %prec FUNC
+                | LOG expression %prec FUNC
+                | SIN expression %prec FUNC
+                | COS expression %prec FUNC
+                | TG expression %prec FUNC
+                | CTG expression %prec FUNC
+    '''
+    if p[1] == '//': # rad
+        p[0] = math.sqrt(p[2])
+    elif p[1] == '!': # log
+        p[0] = math.log(p[2][1], p[2][2])
+    elif p[1] == '@': # sin
+        p[0] = math.sin(p[2])
+    elif p[1] == '#': # cos
+        p[0] = math.cos(p[2])
+    elif p[1] == '$': # tg
+        p[0] = math.tan(p[2])
+    elif p[1] == '&': # ctg:
+        p[0] = 1 / math.tan(p[2])
 
 def p_binop(p):
     '''
@@ -115,13 +154,13 @@ def eval(p):
             return eval(p[1]) / eval(p[2])
         elif p[0] == '^':
             return pow(eval(p[1]), eval(p[2]))
-        elif p[0] == '//':
-            return eval(p[1])
-        elif p[0] == '@':
+        elif p[0] == '//' or p[0] == '!' or p[0] == '@'\
+                or p[0] == '#' or p[0] == '$' or p[0] == '&':
             return eval(p[1])
     else:
         return p
 
 while True:
     s = input('pycalc >> ')
+    s = make_input_friendly(s)
     parser.parse(s)
