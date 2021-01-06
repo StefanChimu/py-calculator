@@ -1,14 +1,25 @@
 import ply.lex as lex
 import ply.yacc as yacc
+import math
 
 # tokens def
 
-tokens = ['INT', 'FLOAT', 'NAME', 'PLUS', 'MINUS', 'DIVIDE', 'MULTIPLY']
+tokens = ['INT', 'FLOAT', 'PLUS', 'MINUS', 'DIVIDE', 'MULTIPLY', 'POW', 'SQRT',
+          'LPAREN', 'RPAREN', 'COMMA', 'LOGARITHM']
+
+# basic operations
 
 t_PLUS = r'\+'
 t_MINUS = r'\-'
 t_DIVIDE = r'\/'
 t_MULTIPLY = r'\*'
+t_POW = r'\^'
+t_SQRT = r'\//'
+t_LPAREN  = r'\('
+t_RPAREN  = r'\)'
+t_COMMA = r'\,'
+t_LOGARITHM = r'\@'
+
 t_ignore = r' '
 
 # representation of every type
@@ -23,18 +34,15 @@ def t_INT(t):
     t.value = int(t.value)
     return t
 
-def t_NAME(t):
-    r'[a-zA-Z_][a-zA-Z_0-9]*'
-    t.type = 'NAME'
-    return t
-
 def t_error(t):
     print("Bad characters!\n")
     t.lexer.skip(1)
 
 # operation priority
 
-precedence = (('left', 'PLUS', 'MINUS'), ('left', 'MULTIPLY', 'DIVIDE'))
+precedence = (('left', 'PLUS', 'MINUS'),
+              ('left', 'POW', 'MULTIPLY', 'DIVIDE'),
+              ('right', 'UMINUS', 'RAD', 'LOG'))
 
 def p_calc(p):
     '''
@@ -43,14 +51,30 @@ def p_calc(p):
     '''
     print(eval(p[1]))
 
-def p_expression(p):
+def p_expression_rad(p):
+    'expression : SQRT expression %prec RAD'
+    p[0] = math.sqrt(p[2])
+
+def p_expression_log(p):
+    'expression : LOGARITHM expression %prec LOG'
+    p[0] = math.log(p[2][1], p[2][2])
+
+def p_binop(p):
     '''
     expression : expression MULTIPLY expression
                | expression DIVIDE expression
+               | expression POW expression
                | expression PLUS expression
                | expression MINUS expression
+               | expression COMMA expression
     '''
-    p[0] = (p[2], p[1], p[3])
+    p[0] = (p[2], p[1], p[3])  # 1 + 2 => (+, (1, 2))
+
+def p_expression_uminus(p):
+    '''
+    expression : MINUS expression %prec UMINUS
+    '''
+    p[0] = -p[2]
 
 def p_expression_int_float(p):
     '''
@@ -59,11 +83,11 @@ def p_expression_int_float(p):
     '''
     p[0] = p[1]
 
-def p_expression_var(p):
+def p_expression_paren(p):
     '''
-    expression : NAME
+    expression : LPAREN expression RPAREN
     '''
-    p[0] = ('var', p[1])
+    p[0] = p[2]
 
 def p_error(p):
     print("Syntax error occured!\n")
@@ -84,14 +108,20 @@ def eval(p):
         if p[0] == '+':
             return eval(p[1]) + eval(p[2])
         elif p[0] == '-':
-            return eval(p[1]) + eval(p[2])
+            return eval(p[1]) - eval(p[2])
         elif p[0] == '*':
             return eval(p[1]) * eval(p[2])
         elif p[0] == '/':
             return eval(p[1]) / eval(p[2])
+        elif p[0] == '^':
+            return pow(eval(p[1]), eval(p[2]))
+        elif p[0] == '//':
+            return eval(p[1])
+        elif p[0] == '@':
+            return eval(p[1])
     else:
         return p
 
 while True:
-    s = input('-> ')
+    s = input('pycalc >> ')
     parser.parse(s)
