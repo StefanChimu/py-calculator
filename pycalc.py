@@ -12,11 +12,14 @@ def make_input_friendly(s):
     s = s.replace("tg", "$")
     return s
 
+def tilda(a,b):
+    return (a/b) - 1
+
 # tokens def
 
 tokens = ['INT', 'FLOAT', 'PLUS', 'MINUS', 'DIVIDE', 'MULTIPLY', 'POW', 'SQRT',
           'LPAREN', 'RPAREN', 'COMMA', 'LOG',
-          'SIN', 'COS', 'TG', 'CTG']
+          'SIN', 'COS', 'TG', 'CTG', 'NEWOP']
 
 # basic operations
 
@@ -26,6 +29,7 @@ t_DIVIDE = r'\/'
 t_MULTIPLY = r'\*'
 t_POW = r'\^'
 t_SQRT = r'\//'
+t_NEWOP = r'\~'
 
 # parantheses
 
@@ -65,7 +69,7 @@ def t_error(t):
 # operation priority
 
 precedence = (('left', 'PLUS', 'MINUS'),
-              ('left', 'POW', 'MULTIPLY', 'DIVIDE'),
+              ('left', 'POW', 'MULTIPLY', 'DIVIDE', 'NEWOP'),
               ('right', 'FUNC'),
               ('right', 'UMINUS'))
 
@@ -106,6 +110,7 @@ def p_binop(p):
                | expression PLUS expression
                | expression MINUS expression
                | expression COMMA expression
+               | expression NEWOP expression
     '''
     p[0] = (p[2], p[1], p[3])  # 1 + 2 => (+, (1, 2))
 
@@ -154,6 +159,8 @@ def eval(p):
             return eval(p[1]) / eval(p[2])
         elif p[0] == '^':
             return pow(eval(p[1]), eval(p[2]))
+        elif p[0] == '~':
+            return tilda(p[1], p[2])
         elif p[0] == '//' or p[0] == '!' or p[0] == '@'\
                 or p[0] == '#' or p[0] == '$' or p[0] == '&':
             return eval(p[1])
